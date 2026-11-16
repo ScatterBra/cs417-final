@@ -1,0 +1,16 @@
+家具建模
+AI 平台导出 GLB → Blender 清理、减面、归一化 → 导出 FBX → Unity。
+Blender: 
+1.使用Quad Remaster进行减面
+1000面破面了
+10000面还是破面
+先merge，还是破面
+
+理由是前半段要的是"零依赖、材质信息不丢",GLB 最合适;后半段要的是"Unity 端可控性最强",FBX 最合适。OBJ 在这条链路里没有位置。
+
+Blender 导出 FBX 时,Transform 面板里 Apply Scalings 选 FBX All,Forward 选 Z Forward,Up 选 Y Up,并勾上 Apply Transform。这套组合能避免绝大部分进 Unity 后旋转 90 度或缩放 100 倍的问题。
+
+Icon
+在Figma中
+全选所有frame，然后export选4x PNG
+图标是Lucide

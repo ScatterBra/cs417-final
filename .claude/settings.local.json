@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__unity-mcp__Unity_SceneView_CaptureMultiAngleSceneView",
+      "mcp__unity-mcp__Unity_GetConsoleLogs",
+      "mcp__unity-mcp__Unity_RunCommand",
+      "mcp__unity-mcp__Unity_Camera_Capture",
+      "Bash(unzip -o \"Building Icon.zip\")",
+      "WebFetch(domain:claude.ai)"
+    ]
+  }
+}
