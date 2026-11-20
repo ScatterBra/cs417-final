@@ -18,13 +18,13 @@ using UnityEngine.UI;
 /// size on any phone resolution. Buttons call the same public methods as the
 /// editor keyboard shortcuts.
 /// </summary>
-public partial class GameUI : MonoBehaviour
+public class GameUI : MonoBehaviour
 {
     public static GameUI Instance { get; private set; }
 
-    static readonly Color PanelColor = new Color(0.10f, 0.12f, 0.14f, 0.72f);
-    static readonly Color ButtonColor = new Color(0.16f, 0.19f, 0.22f, 0.92f);
-    static readonly Color AccentColor = new Color(0.95f, 0.55f, 0.25f, 0.95f);
+    internal static readonly Color PanelColor = new Color(0.10f, 0.12f, 0.14f, 0.72f);
+    internal static readonly Color ButtonColor = new Color(0.16f, 0.19f, 0.22f, 0.92f);
+    internal static readonly Color AccentColor = new Color(0.95f, 0.55f, 0.25f, 0.95f);
 
     BuildManager bm;
     IsoCameraController isoCam;
@@ -34,8 +34,10 @@ public partial class GameUI : MonoBehaviour
     float toastUntil;
     TMP_Text levelLabel;
     TMP_Text dragLabel;
+    TMP_Text furniturePlacementHint;
+    Image furnitureHintBackground;
     Image overviewBtnBg;
-    RectTransform catalogPanel;
+    [SerializeField] InteriorDecorationCatalog furnitureCatalog;
     RectTransform floorStylePanel;
     RectTransform wallStylePanel;
     RectTransform doorStylePanel;
@@ -128,7 +130,7 @@ public partial class GameUI : MonoBehaviour
                 : MakeButton(bar, entry.label, new Vector2(x, 0f), new Vector2(bw, bh), onClick);
             toolButtons.Add((entry.tool, btn.GetComponent<Image>(), hasIcon ? Color.white : ButtonColor));
         }
-        BuildCatalogPanel(root, bh);
+        InitializeFurnitureCatalog(root);
         BuildFloorStylePanel(root, bh);
         wallStylePanel = BuildKindStylePanel(root, bh, WallOpening.None);
         doorStylePanel = BuildKindStylePanel(root, bh, WallOpening.Door);
@@ -216,6 +218,14 @@ public partial class GameUI : MonoBehaviour
         brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0.5f, 1f);
         brt.anchoredPosition = new Vector2(0f, -56f);
 
+        var hintPanel = MakePanel(dyn, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+            new Vector2(0f, -146f), new Vector2(700f, 48f));
+        furnitureHintBackground = hintPanel.GetComponent<Image>();
+        furnitureHintBackground.raycastTarget = false;
+        furnitureHintBackground.enabled = false;
+        furniturePlacementHint = MakeLabel(hintPanel, "", 22, Vector2.zero, new Vector2(680f, 44f));
+        furniturePlacementHint.raycastTarget = false;
+
         // ---- toast + drag-size label ----
         toastText = MakeLabel(dyn, "", 28, Vector2.zero, new Vector2(600f, 40f));
         toastText.raycastTarget = false;
@@ -233,6 +243,11 @@ public partial class GameUI : MonoBehaviour
     void Update()
     {
         if (bm == null) return;
+        if (furniturePlacementHint != null)
+        {
+            furniturePlacementHint.text = bm.FurniturePlacementHint;
+            furnitureHintBackground.enabled = furniturePlacementHint.text.Length > 0;
+        }
         if (bm.tool != BuildManager.Tool.Furniture) SetCatalogVisible(false);
         foreach (var (tool, bg, normal) in toolButtons)
             bg.color = bm.tool == tool ? AccentColor : normal;
@@ -566,6 +581,26 @@ public partial class GameUI : MonoBehaviour
         resultPanel.gameObject.SetActive(true);
     }
 
+    void InitializeFurnitureCatalog(Transform root)
+    {
+        if (furnitureCatalog == null) furnitureCatalog = FindAnyObjectByType<InteriorDecorationCatalog>();
+        // Older scenes can still build their catalog without a serialized prefab reference.
+        if (furnitureCatalog == null)
+            furnitureCatalog = new GameObject("InteriorDecorationRoot", typeof(RectTransform))
+                .AddComponent<InteriorDecorationCatalog>();
+        furnitureCatalog.Initialize(this, bm, root, fontSerif);
+    }
+
+    void ToggleCatalog()
+    {
+        if (furnitureCatalog != null) furnitureCatalog.ToggleVisible();
+    }
+
+    void SetCatalogVisible(bool visible)
+    {
+        if (furnitureCatalog != null) furnitureCatalog.SetVisible(visible);
+    }
+
     void BuildFloorStylePanel(Transform root, float toolbarH)
     {
         var styles = bm != null && bm.grid != null ? bm.grid.GetFloorStyles() : null;
@@ -659,7 +694,7 @@ public partial class GameUI : MonoBehaviour
 
     /// <summary>Invisible layout container: anchors like MakePanel but draws
     /// nothing, so bare icons sit directly over the 3D view.</summary>
-    static RectTransform MakeBar(Transform parent, Vector2 anchor, Vector2 pivot, Vector2 anchoredPos, Vector2 size)
+    internal static RectTransform MakeBar(Transform parent, Vector2 anchor, Vector2 pivot, Vector2 anchoredPos, Vector2 size)
     {
         var go = new GameObject("Bar", typeof(RectTransform));
         go.transform.SetParent(parent, false);
@@ -671,7 +706,7 @@ public partial class GameUI : MonoBehaviour
         return rt;
     }
 
-    RectTransform MakePanel(Transform parent, Vector2 anchor, Vector2 pivot, Vector2 anchoredPos, Vector2 size)
+    internal static RectTransform MakePanel(Transform parent, Vector2 anchor, Vector2 pivot, Vector2 anchoredPos, Vector2 size)
     {
         var go = new GameObject("Panel", typeof(Image));
         go.transform.SetParent(parent, false);
@@ -684,7 +719,7 @@ public partial class GameUI : MonoBehaviour
         return rt;
     }
 
-    Button MakeButton(Transform parent, string label, Vector2 anchoredPos, Vector2 size, UnityEngine.Events.UnityAction onClick, TMP_FontAsset face = null)
+    internal Button MakeButton(Transform parent, string label, Vector2 anchoredPos, Vector2 size, UnityEngine.Events.UnityAction onClick, TMP_FontAsset face = null)
     {
         var go = new GameObject("Btn_" + label, typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
@@ -700,7 +735,7 @@ public partial class GameUI : MonoBehaviour
         return go.GetComponent<Button>();
     }
 
-    TMP_Text MakeLabel(Transform parent, string content, float fontSize, Vector2 anchoredPos, Vector2 size, TMP_FontAsset face = null)
+    internal TMP_Text MakeLabel(Transform parent, string content, float fontSize, Vector2 anchoredPos, Vector2 size, TMP_FontAsset face = null)
     {
         var go = new GameObject("Label", typeof(TextMeshProUGUI));
         go.transform.SetParent(parent, false);
