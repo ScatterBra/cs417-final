@@ -8,22 +8,47 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 #endif
 
+/// <summary>A client and the list of requirements their house must meet.</summary>
+[System.Serializable]
+public class ClientBriefData
+{
+    public string name;
+    public List<string> requirements = new List<string>();
+}
+
 /// <summary>
 /// Client Briefs &amp; Evaluation (owner: Li Ziyang, xiaotuzi7877).
-/// Minimal first version: shows the client's name, a checklist of requirements,
+/// Shows the current client's name, a checklist of requirements,
 /// and a "Requirements Met: X / Y" counter with a progress bar.
 /// Requirements can be toggled by clicking them or pressing 1..9 (placeholder until
 /// RoomAnalyzer-driven automatic evaluation is integrated via SetRequirementMet).
+/// "Next Client" (button or N key) cycles through the available client briefs.
 /// </summary>
 public class ClientBriefPanel : MonoBehaviour
 {
-    [Header("Client Brief")]
+    [Header("Client Brief (first client)")]
     public string clientName = "Grandma's New Home";
     public List<string> requirements = new List<string>
     {
         "At least 1 bedroom",
         "At least 1 bathroom",
         "No stairs in the house",
+    };
+
+    [Header("More clients (cycled with Next Client / N key)")]
+    public List<ClientBriefData> moreClients = new List<ClientBriefData>
+    {
+        new ClientBriefData
+        {
+            name = "The Cat-Loving Illustrator",
+            requirements = new List<string>
+            {
+                "A study with a window",
+                "At least 1 bedroom",
+                "Kitchen next to the dining room",
+                "A sunny spot for the cat",
+            },
+        },
     };
 
     [Header("Layout")]
@@ -35,16 +60,23 @@ public class ClientBriefPanel : MonoBehaviour
     static readonly Color TextColor = new Color(0.86f, 0.89f, 0.92f);
     static readonly Color MetColor = new Color(0.55f, 0.85f, 0.70f);
     static readonly Color BarBgColor = new Color(1f, 1f, 1f, 0.12f);
+    static readonly Color ButtonColor = new Color(1f, 1f, 1f, 0.10f);
 
     readonly List<bool> met = new List<bool>();
     readonly List<TextMeshProUGUI> rowLabels = new List<TextMeshProUGUI>();
     TextMeshProUGUI counterLabel;
     RectTransform barFill;
+    RectTransform panel;
+    int clientIndex;
     bool built;
 
     public Canvas Canvas { get; private set; }
+    public int ClientCount => 1 + moreClients.Count;
+    public int ClientIndex => clientIndex;
+    public string CurrentClientName => clientIndex == 0 ? clientName : moreClients[clientIndex - 1].name;
+    public List<string> CurrentRequirements => clientIndex == 0 ? requirements : moreClients[clientIndex - 1].requirements;
     public int MetCount { get { int n = 0; foreach (var m in met) if (m) n++; return n; } }
-    public int TotalCount => requirements.Count;
+    public int TotalCount => CurrentRequirements.Count;
 
     void Awake() => Build();
 
@@ -64,20 +96,57 @@ public class ClientBriefPanel : MonoBehaviour
         scaler.referenceResolution = new Vector2(1280, 720);
         canvasGo.AddComponent<GraphicRaycaster>();
 
+        EnsureEventSystem();
+        BuildPanel();
+    }
+
+    /// <summary>Switches to the next client brief and resets its checklist.</summary>
+    public void NextClient() => ShowClient((clientIndex + 1) % ClientCount);
+
+    public void ShowClient(int index)
+    {
+        if (index < 0 || index >= ClientCount) return;
+        clientIndex = index;
+        if (built) BuildPanel();
+    }
+
+    void BuildPanel()
+    {
+        if (panel != null)
+        {
+            if (Application.isPlaying) Destroy(panel.gameObject);
+            else DestroyImmediate(panel.gameObject);
+        }
+
         // Panel (top-right corner, clear of the main menu)
-        var panel = NewUI("ClientBriefPanel", canvasGo.transform);
+        panel = NewUI("ClientBriefPanel", Canvas.transform);
         panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(1, 1);
         panel.anchoredPosition = new Vector2(-24, -24);
         panel.sizeDelta = panelSize;
         panel.gameObject.AddComponent<Image>().color = PanelColor;
 
         float y = -18;
-        var tag = NewText("Tag", panel, "UIKEA / CLIENT BRIEF", 15, TextColor * 0.8f, ref y, 22);
+        var tag = NewText("Tag", panel, $"UIKEA / CLIENT BRIEF  {clientIndex + 1}/{ClientCount}", 15, TextColor * 0.8f, ref y, 22);
         tag.fontStyle = FontStyles.UpperCase;
-        NewText("ClientName", panel, clientName, 28, TitleColor, ref y, 44).fontStyle = FontStyles.Bold;
+        NewText("ClientName", panel, CurrentClientName, 28, TitleColor, ref y, 44).fontStyle = FontStyles.Bold;
+
+        // "Next Client" button in the header (top-right of the panel)
+        var nextBtn = NewUI("NextClientButton", panel);
+        nextBtn.anchorMin = nextBtn.anchorMax = nextBtn.pivot = new Vector2(1, 1);
+        nextBtn.anchoredPosition = new Vector2(-14, -14);
+        nextBtn.sizeDelta = new Vector2(120, 28);
+        nextBtn.gameObject.AddComponent<Image>().color = ButtonColor;
+        nextBtn.gameObject.AddComponent<Button>().onClick.AddListener(NextClient);
+        float by = 0;
+        var nextLabel = NewText("Label", nextBtn, "Next Client (N)", 14, TitleColor, ref by, 28);
+        nextLabel.rectTransform.offsetMin = new Vector2(0, -28);
+        nextLabel.rectTransform.offsetMax = Vector2.zero;
+        nextLabel.alignment = TextAlignmentOptions.Center;
+        nextLabel.raycastTarget = false;
 
         met.Clear(); rowLabels.Clear();
-        for (int i = 0; i < requirements.Count; i++)
+        var reqs = CurrentRequirements;
+        for (int i = 0; i < reqs.Count; i++)
         {
             met.Add(false);
             int index = i;
@@ -103,7 +172,6 @@ public class ClientBriefPanel : MonoBehaviour
 
         panel.sizeDelta = new Vector2(panelSize.x, Mathf.Max(panelSize.y, -y + 24));
 
-        EnsureEventSystem();
         Refresh();
     }
 
@@ -123,9 +191,10 @@ public class ClientBriefPanel : MonoBehaviour
 
     void Refresh()
     {
+        var reqs = CurrentRequirements;
         for (int i = 0; i < rowLabels.Count; i++)
         {
-            rowLabels[i].text = (met[i] ? "<color=#8CD9B3>[x]</color> " : "[  ] ") + requirements[i];
+            rowLabels[i].text = (met[i] ? "<color=#8CD9B3>[x]</color> " : "[  ] ") + reqs[i];
             rowLabels[i].color = met[i] ? MetColor : TextColor;
         }
         counterLabel.text = $"Requirements Met: {MetCount} / {TotalCount}";
@@ -140,6 +209,7 @@ public class ClientBriefPanel : MonoBehaviour
         if (kb == null) return;
         for (int i = 0; i < Mathf.Min(9, met.Count); i++)
             if (kb[Key.Digit1 + i].wasPressedThisFrame) ToggleRequirement(i);
+        if (kb.nKey.wasPressedThisFrame) NextClient();
 #endif
     }
 
