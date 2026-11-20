@@ -602,30 +602,44 @@ public class GridSystem : MonoBehaviour
         (rot & 1) == 0 ? new Vector2(item.size.x, item.size.z) : new Vector2(item.size.z, item.size.x);
 
     public bool CanPlaceFurniture(FurnitureItem item, int sx, int sz, int rot, int level)
+        => GetFurniturePlacementError(item, sx, sz, rot, level) == null;
+
+    /// <summary>Returns an actionable placement error, or null when the footprint is valid.
+    /// Preview, confirmation, and placement share these same rules.</summary>
+    public string GetFurniturePlacementError(FurnitureItem item, int sx, int sz, int rot, int level)
     {
-        if (item == null || level < 0 || level >= maxLevels) return false;
+        EnsureInit();
+        if (item == null) return "Choose furniture from the catalog.";
+        if (level < 0 || level >= maxLevels) return "Choose a valid floor level.";
         var fpt = FurnFootprint(item, rot);
         float s = SubCell;
         float x0 = sx * s, z0 = sz * s, x1 = x0 + fpt.x, z1 = z0 + fpt.y;
         const float eps = 0.02f;
-        if (x0 < -eps || z0 < -eps || x1 > width * cellSize + eps || z1 > height * cellSize + eps) return false;
+        if (x0 < -eps || z0 < -eps || x1 > width * cellSize + eps || z1 > height * cellSize + eps)
+            return "Outside plot: move inside the grid.";
 
         int cx0 = Mathf.FloorToInt((x0 + eps) / cellSize), cx1 = Mathf.FloorToInt((x1 - eps) / cellSize);
         int cz0 = Mathf.FloorToInt((z0 + eps) / cellSize), cz1 = Mathf.FloorToInt((z1 - eps) / cellSize);
         for (int cx = cx0; cx <= cx1; cx++)
             for (int cz = cz0; cz <= cz1; cz++)
             {
-                if (level > 0 && !HasFloor(cx, cz, level)) return false; // ground level is free
-                if (HasStair(cx, cz, level)) return false;
+                if (level > 0 && !HasFloor(cx, cz, level)) return "No floor: add floor tiles here."; // ground level is free
+                if (HasStair(cx, cz, level)) return "Stairs blocked: leave them clear.";
             }
 
         // must not cross a wall line (flush against walls is fine)
         for (int gx = cx0 + 1; gx <= cx1; gx++)
             for (int cz = cz0; cz <= cz1; cz++)
-                if (HasWall(gx, cz, 1, level)) return false;
+                if (TryGetWall(gx, cz, 1, level, out var wall))
+                    return wall.opening == WallOpening.Door
+                        ? "Door blocked: keep it clear."
+                        : "Wall overlap: move to one side.";
         for (int gz = cz0 + 1; gz <= cz1; gz++)
             for (int cx = cx0; cx <= cx1; cx++)
-                if (HasWall(cx, gz, 0, level)) return false;
+                if (TryGetWall(cx, gz, 0, level, out var wall))
+                    return wall.opening == WallOpening.Door
+                        ? "Door blocked: keep it clear."
+                        : "Wall overlap: move to one side.";
 
         foreach (var f in furniture)
         {
@@ -634,9 +648,10 @@ public class GridSystem : MonoBehaviour
             if (of == null) continue;
             var od = FurnFootprint(of, f.rot);
             float ox0 = f.sx * s, oz0 = f.sz * s, ox1 = ox0 + od.x, oz1 = oz0 + od.y;
-            if (x0 < ox1 - eps && x1 > ox0 + eps && z0 < oz1 - eps && z1 > oz0 + eps) return false;
+            if (x0 < ox1 - eps && x1 > ox0 + eps && z0 < oz1 - eps && z1 > oz0 + eps)
+                return "Overlap: move to a free spot.";
         }
-        return true;
+        return null;
     }
 
     bool WallRunAlongX(int gz, float x0, float x1, int level)

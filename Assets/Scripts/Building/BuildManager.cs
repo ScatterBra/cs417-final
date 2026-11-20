@@ -179,14 +179,18 @@ public class BuildManager : MonoBehaviour
         if (grid == null) return;
         if (tool == Tool.Furniture && selectedFurniture != null && hasPendingFurn)
         {
-            if (grid.CanPlaceFurniture(selectedFurniture, pendingSx, pendingSz, furnRot, currentLevel))
+            string error = grid.GetFurniturePlacementError(selectedFurniture, pendingSx, pendingSz, furnRot, currentLevel);
+            if (error == null)
             {
                 grid.PlaceFurniture(selectedFurniture, pendingSx, pendingSz, furnRot, currentLevel);
                 hasPendingFurn = false;
                 HideGhost();
+                ShowToast(selectedFurniture.DisplayName + " placed.");
             }
-            else ShowToast("Doesn't fit here");
+            else ShowToast(error);
         }
+        else if (tool == Tool.Furniture && selectedFurniture != null)
+            ShowToast("Tap a location first.");
         else if (tool == Tool.Stair && hasPendingStair)
         {
             if (grid.CanPlaceStair(pendingStairCell.x, pendingStairCell.y, stairRot, currentLevel))
@@ -255,6 +259,16 @@ public class BuildManager : MonoBehaviour
         else { selectedWallStyle = styleName; tool = Tool.Wall; }
     }
     public bool OverviewOn => overviewMode;
+    public string FurniturePlacementHint
+    {
+        get
+        {
+            if (!SessionStarted || !ShowPlacementControls || tool != Tool.Furniture || grid == null) return "";
+            if (!hasPendingFurn) return "Tap a location to preview furniture.";
+            return grid.GetFurniturePlacementError(selectedFurniture, pendingSx, pendingSz, furnRot, currentLevel)
+                ?? "Ready: rotate or confirm placement.";
+        }
+    }
     public bool DraggingRect => floorDragging;
     public RectInt DragRect => dragRect;
 
