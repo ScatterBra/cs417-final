@@ -19,3 +19,4 @@ MonoBehaviour:
   prefab: {fileID: 0}
   price: 800
   roomHint: 
+  category: 2

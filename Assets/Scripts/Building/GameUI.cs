@@ -18,7 +18,7 @@ using UnityEngine.UI;
 /// size on any phone resolution. Buttons call the same public methods as the
 /// editor keyboard shortcuts.
 /// </summary>
-public class GameUI : MonoBehaviour
+public partial class GameUI : MonoBehaviour
 {
     public static GameUI Instance { get; private set; }
 
@@ -233,6 +233,7 @@ public class GameUI : MonoBehaviour
     void Update()
     {
         if (bm == null) return;
+        if (bm.tool != BuildManager.Tool.Furniture) SetCatalogVisible(false);
         foreach (var (tool, bg, normal) in toolButtons)
             bg.color = bm.tool == tool ? AccentColor : normal;
         if (overviewBtnBg != null)
@@ -563,36 +564,6 @@ public class GameUI : MonoBehaviour
         ScrollToTop(resultText);
         if (briefPanel != null) briefPanel.gameObject.SetActive(false);
         resultPanel.gameObject.SetActive(true);
-    }
-
-    void BuildCatalogPanel(Transform root, float toolbarH)
-    {
-        var items = bm != null && bm.grid != null ? bm.grid.GetCatalog() : null;
-        if (items == null || items.Length == 0) return;
-        const float iw = 96f, ih = 86f, gap = 8f;
-        float total = items.Length * iw + (items.Length - 1) * gap;
-        catalogPanel = MakePanel(root, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, toolbarH + 44f), new Vector2(total + 20f, ih + 16f));
-        for (int i = 0; i < items.Length; i++)
-        {
-            var item = items[i];
-            float x = -total * 0.5f + iw * 0.5f + i * (iw + gap);
-            var btn = MakeButton(catalogPanel, "", new Vector2(x, 0f), new Vector2(iw, ih), () => bm.SelectFurniture(item));
-            btn.GetComponent<Image>().color = new Color(item.color.r, item.color.g, item.color.b, 0.95f);
-            var nameLabel = MakeLabel(btn.transform, string.IsNullOrEmpty(item.displayName) ? item.name : item.displayName, 18, new Vector2(0f, -ih * 0.5f + 14f), new Vector2(iw, 22f), fontSerif);
-            nameLabel.raycastTarget = false;
-            nameLabel.color = Color.black;
-        }
-        catalogPanel.gameObject.SetActive(false);
-    }
-
-    void ToggleCatalog()
-    {
-        if (catalogPanel != null) catalogPanel.gameObject.SetActive(!catalogPanel.gameObject.activeSelf);
-    }
-
-    void SetCatalogVisible(bool v)
-    {
-        if (catalogPanel != null) catalogPanel.gameObject.SetActive(v);
     }
 
     void BuildFloorStylePanel(Transform root, float toolbarH)
