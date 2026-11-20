@@ -431,6 +431,11 @@ public class GameUI : MonoBehaviour
         rootCanvas.enabled = true;
     }
 
+    public void SetVRWalkthrough(bool active)
+    {
+        rootCanvas.gameObject.SetActive(!active);
+    }
+
     void StartSession(bool freeMode)
     {
         menuPanel.gameObject.SetActive(false);

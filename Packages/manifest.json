@@ -45,6 +45,9 @@
     "com.unity.modules.vehicles": "1.0.0",
     "com.unity.modules.video": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
-    "com.unity.modules.xr": "1.0.0"
+    "com.unity.modules.xr": "1.0.0",
+    "com.unity.xr.interaction.toolkit": "3.6.0",
+    "com.unity.xr.management": "4.7.0",
+    "com.unity.xr.openxr": "1.18.0"
   }
 }

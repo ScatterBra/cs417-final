@@ -45,6 +45,7 @@ public class BuildManager : MonoBehaviour
     string autoSlot = "autosave_story";
     public bool SessionStarted { get; private set; }
     public bool FreeMode { get; private set; }
+    public bool VRWalkthrough { get; private set; }
 
     FurnitureItem selectedFurniture;
     int furnRot;
@@ -287,8 +288,16 @@ public class BuildManager : MonoBehaviour
         else ShowToast("No save file");
     }
 
+    public void SetVRWalkthrough(bool active)
+    {
+        VRWalkthrough = active;
+        CancelPlacement();
+        ApplyLevel(true);
+        grid.SetGridLinesVisible(!active && !overviewMode);
+    }
+
     float TargetReveal(int level) =>
-        (overviewMode || (walk != null && walk.Walking) || level <= currentLevel) ? 1f : 0f;
+        (VRWalkthrough || overviewMode || (walk != null && walk.Walking) || level <= currentLevel) ? 1f : 0f;
 
     void ApplyLevel(bool snap = false)
     {
@@ -312,7 +321,7 @@ public class BuildManager : MonoBehaviour
 
     void Update()
     {
-        if (!SessionStarted) return; // main menu is up
+        if (!SessionStarted || VRWalkthrough) return; // VR locomotion owns input during walkthrough.
 
         var kb = Keyboard.current;
         if (kb != null)
