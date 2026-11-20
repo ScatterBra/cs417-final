@@ -1,0 +1,35 @@
+1. Remove the gaps between grid cells so floor tiles fit tightly against each other ✅
+2. Need camera zoom in/out ✅
+3. When laying floor tiles, change left-click drag to a rectangle selection (N x M) ✅
+4. The collapse animation needs to be changed
+5. Removing a wall also removes the floor tiles with it ✅
+6. Head gets stuck when going upstairs (model collision issue)
+7. Camera rotation feel (undecided): it's okay, just a bit stiff
+8. UI layout
+9. Floor tile placement is broken on mobile ✅
+10. Clipping issues (walls and floor)
+11. Can't erase in walk mode on mobile ✅
+12. Don't allow entering walk mode on the roof ✅
+13. Ghost preview is wrong, rotated by 90 degrees
+14. Block level switching while walking, so it's one complete house; but outside walk mode, whichever floor you click Walk on is where the character is placed, e.g. clicking Walk on the 2nd floor spawns the character on the 2nd floor ❌ With only one floor, pressing Walk in view mode lets you explore the whole house. But outside view mode you have to level down to the 1st floor before you can use Walk (because the roof blocks it)
+15. Remove grid lines on the roof level ❌ No grid lines above the roof either
+16. Placement feels weird: after selecting something to place, a ghost preview appears together with Rotate, Confirm and Cancel buttons, and it stays in ghost preview mode until Confirm is pressed (remove the old Rotate and replace it with the logic I described) ❌ The controls must not disappear during walk
+17. After clicking Walk, View Control and Level Up/Down should disappear ❌ View must not disappear
+18. In outdoor mode, a one-finger swipe should pan ❌ One finger should also move the view in view mode
+19. View is the viewing mode: disables all editing, usable both indoors and outdoors
+Three modes
+Default, View, Walk, Top
+
+Default: not View mode and not Walk mode; the mode you are in when entering the game, for placing walls and floor tiles
+Walk: first-person mode; hide RotL, RotR and Top, since these camera changes make no sense in first person (that's why I asked you to hide these buttons), but keep + and -
+View: viewing mode that lets players freely admire the house without accidental taps; it can be activated from both Default and Walk mode, and its purpose is to block placing and deleting
+
+20. View conflicts with Level Up/Down ✅
+22. Why is the text different between desktop and mobile? ❌ Fixed, but some characters are missing
+23. Redesign the UI
+24. HDRI texture ❌ Replaced with low-resolution geometry
+25. Modeling
+26. Rendering issue: light sources don't need to render while building, only render them in View
+27. High/low roof issue ✅
+28. Inverted-triangle camera issue
+29. Some text doesn't show on mobile
