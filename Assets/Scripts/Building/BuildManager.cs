@@ -235,6 +235,9 @@ public class BuildManager : MonoBehaviour
 
     public void SelectFurniture(FurnitureItem item)
     {
+        // A new catalog choice starts a fresh preview, never confirms the old footprint.
+        hasPendingFurn = false;
+        HideGhost();
         selectedFurniture = item;
         tool = Tool.Furniture;
     }
