@@ -50,4 +50,4 @@ MonoBehaviour:
   - At least 1 bathroom
   - No stairs in the house
   renderMode: 0
-  panelSize: {x: 460, y: 300}
+  panelSize: {x: 420, y: 240}

@@ -28,7 +28,7 @@ public class ClientBriefPanel : MonoBehaviour
 
     [Header("Layout")]
     public RenderMode renderMode = RenderMode.ScreenSpaceOverlay;
-    public Vector2 panelSize = new Vector2(460, 300);
+    public Vector2 panelSize = new Vector2(420, 240);
 
     static readonly Color PanelColor = new Color(0.13f, 0.18f, 0.23f, 0.92f);
     static readonly Color TitleColor = new Color(0.98f, 0.89f, 0.72f);
@@ -64,10 +64,10 @@ public class ClientBriefPanel : MonoBehaviour
         scaler.referenceResolution = new Vector2(1280, 720);
         canvasGo.AddComponent<GraphicRaycaster>();
 
-        // Panel (top-left corner)
+        // Panel (top-right corner, clear of the main menu)
         var panel = NewUI("ClientBriefPanel", canvasGo.transform);
-        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(0, 1);
-        panel.anchoredPosition = new Vector2(24, -24);
+        panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(1, 1);
+        panel.anchoredPosition = new Vector2(-24, -24);
         panel.sizeDelta = panelSize;
         panel.gameObject.AddComponent<Image>().color = PanelColor;
 
@@ -101,7 +101,7 @@ public class ClientBriefPanel : MonoBehaviour
         barFill.offsetMin = barFill.offsetMax = Vector2.zero;
         barFill.gameObject.AddComponent<Image>().color = MetColor;
 
-        panel.sizeDelta = new Vector2(panelSize.x, Mathf.Max(panelSize.y, -y + 32));
+        panel.sizeDelta = new Vector2(panelSize.x, Mathf.Max(panelSize.y, -y + 24));
 
         EnsureEventSystem();
         Refresh();
