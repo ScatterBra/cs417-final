@@ -24,7 +24,9 @@ public class WalkController : MonoBehaviour
     Vector2 joyOrigin;
 
     public bool Walking { get; private set; }
-    public Transform WalkerTransform => walker != null ? walker.transform : null;
+    public Transform WalkerTransform =>
+        VRModeManager.Active ? (Walking ? VRModeManager.Instance.RigTransform : null)
+        : walker != null ? walker.transform : null;
 
     void Start()
     {
@@ -70,6 +72,15 @@ public class WalkController : MonoBehaviour
                 grid.width * grid.cellSize * 0.5f,
                 grid.LevelBaseY(lv),
                 grid.height * grid.cellSize * 0.5f);
+
+        if (VRModeManager.Active)
+        {
+            // VR: the XR rig itself goes 1:1 and stands on the spawn floor;
+            // XRI locomotion (move / turn / teleport / gravity) drives it.
+            VRModeManager.Instance.BeginWalk(spawn);
+            return;
+        }
+
         spawn.y += 1.0f;
         walker = new GameObject("Walker");
         walker.transform.position = spawn;
@@ -91,6 +102,11 @@ public class WalkController : MonoBehaviour
     {
         if (!Walking) return;
         Walking = false;
+        if (VRModeManager.Active)
+        {
+            VRModeManager.Instance.BeginTabletop();
+            return;
+        }
         if (walker != null) Destroy(walker);
         if (isoCam != null)
         {
@@ -104,6 +120,7 @@ public class WalkController : MonoBehaviour
         if (bm != null && !bm.SessionStarted) return; // main menu is up
         var kb = Keyboard.current;
         if (kb != null && kb.fKey.wasPressedThisFrame) Toggle();
+        if (VRModeManager.Active) return; // the XR rig moves itself
         if (!Walking || walker == null) return;
 
         Vector2 look = Vector2.zero;

@@ -378,7 +378,26 @@ public class BuildManager : MonoBehaviour
         bool pointerValid = false, press = false, pressedNow = false, releasedNow = false, cancelNow = false;
         Vector2 pointerPos = default;
         int uiPointerId = -1;
-        var ts = Touchscreen.current;
+
+        // --- VR: the right-hand ray + trigger replaces mouse/touch entirely ---
+        bool vrPointer = VRModeManager.Active;
+        Ray vrRay = default;
+        if (vrPointer)
+        {
+            pointerValid = VRModeManager.Instance.TryGetBuildPointer(
+                out vrRay, out press, out pressedNow, out releasedNow, out cancelNow, out bool vrOverUI);
+            if (pointerValid && vrOverUI)
+            {
+                // ray on the menu panel: never build through buttons
+                if (!press) { floorDragging = false; gestureActive = false; gestureIsPan = false; }
+                if (!hasPendingFurn) HideGhost();
+                if (!hasPendingStair) HideStairGhost();
+                HideRoofGhost();
+                return;
+            }
+        }
+
+        var ts = vrPointer ? null : Touchscreen.current;
         UnityEngine.InputSystem.Controls.TouchControl activeTouch = null;
         int activeTouches = 0;
         if (ts != null)
@@ -436,7 +455,7 @@ public class BuildManager : MonoBehaviour
             releasedNow = activeTouch.press.wasReleasedThisFrame;
             uiPointerId = activeTouch.touchId.ReadValue();
         }
-        else if (Mouse.current != null)
+        else if (!vrPointer && Mouse.current != null)
         {
             var m = Mouse.current;
             pointerValid = true;
@@ -456,7 +475,7 @@ public class BuildManager : MonoBehaviour
         }
 
         // pointer over UI: never build through buttons
-        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(uiPointerId))
+        if (!vrPointer && EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(uiPointerId))
         {
             if (!press) { floorDragging = false; gestureActive = false; gestureIsPan = false; }
             if (!hasPendingFurn) HideGhost();
@@ -476,7 +495,7 @@ public class BuildManager : MonoBehaviour
             gestureStartPos = pointerPos;
             lastPointerPos = pointerPos;
         }
-        if (gestureActive && press)
+        if (gestureActive && press && !vrPointer) // VR pans with the stick, so a trigger press is always a tap
         {
             Vector2 frameDelta = pointerPos - lastPointerPos;
             lastPointerPos = pointerPos;
@@ -512,7 +531,7 @@ public class BuildManager : MonoBehaviour
 
         float planeY = grid.transform.position.y + grid.LevelBaseY(currentLevel);
         var plane = new Plane(Vector3.up, new Vector3(0f, planeY, 0f));
-        var ray = cam.ScreenPointToRay(pointerPos);
+        var ray = vrPointer ? vrRay : cam.ScreenPointToRay(pointerPos);
 
         // Geometry-first picking: aim at what you see (walls, furniture, stairs,
         // roofs are tall — the flat build plane alone would force aiming at their
